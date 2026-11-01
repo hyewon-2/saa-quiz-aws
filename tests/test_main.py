@@ -92,3 +92,32 @@ def test_most_missed_ranks_lowest_accuracy_first(client):
     ranking = client.get("/stats/most-missed?min_attempts=5").get_json()["questions"]
     assert [q["id"] for q in ranking] == ["cmp-01", "cmp-02"]
     assert ranking[0]["accuracy"] == 0.0
+
+
+def json_logs(caplog):
+    import json
+
+    from app.logging_setup import JsonFormatter
+
+    fmt = JsonFormatter()
+    return [json.loads(fmt.format(r)) for r in caplog.records]
+
+
+def test_request_log_is_json(client, caplog):
+    client.get("/stats/questions/cmp-01")
+    entry = next(e for e in json_logs(caplog) if e.get("event") == "request")
+    assert entry["route"] == "/stats/questions/<question_id>"
+    assert entry["status"] == 200
+    assert isinstance(entry["duration_ms"], float)
+    assert entry["version"] == "local"
+
+
+def test_db_failure_returns_503_and_logs_event(client, monkeypatch, caplog):
+    import psycopg
+
+    def broken():
+        raise psycopg.OperationalError("connection refused")
+
+    monkeypatch.setattr(db, "connection", broken)
+    assert client.get("/health/db").status_code == 503
+    assert "db_unavailable" in [e.get("event") for e in json_logs(caplog)]

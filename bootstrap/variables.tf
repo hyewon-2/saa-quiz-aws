@@ -50,3 +50,17 @@ variable "aws_account_id" {
   type        = string
   default     = "458255180711"
 }
+
+# Slack 연결은 콘솔(Amazon Q Developer in chat applications)에서 워크스페이스를 한 번 승인한 뒤 ID를 넣는다.
+# 비밀 정보가 아니라 식별자다.
+variable "slack_team_id" {
+  description = "Slack 워크스페이스 ID (T로 시작) - hyewon-dev"
+  type        = string
+  default     = "T0CE0PRQBS8"
+}
+
+variable "slack_channel_id" {
+  description = "알림을 받을 Slack 채널 ID (C로 시작) - #saa-quiz-alerts"
+  type        = string
+  default     = "C0CDV4D1TLN"
+}

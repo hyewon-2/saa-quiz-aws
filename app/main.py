@@ -1,15 +1,18 @@
 import logging
 import os
 import socket
+import time
 
 import psycopg
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from psycopg.rows import dict_row
 from psycopg_pool import PoolTimeout
+from werkzeug.exceptions import HTTPException
 
 from app import db
+from app.logging_setup import configure_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+configure_logging()
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -27,12 +30,48 @@ def error(status, message):
     return jsonify(error=message), status
 
 
+@app.before_request
+def start_timer():
+    g.start = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    # ALB 헬스체크는 15초마다 들어와서 로그만 쌓이므로 남기지 않는다.
+    if request.path != "/health":
+        log.info(
+            "%s %s %s",
+            request.method,
+            request.path,
+            response.status_code,
+            extra={
+                "event": "request",
+                "method": request.method,
+                "path": request.path,
+                # /stats/questions/cmp-01 같은 경로를 하나로 묶어서 집계하려고 라우트 규칙도 남긴다.
+                "route": request.url_rule.rule if request.url_rule else None,
+                "status": response.status_code,
+                "duration_ms": round((time.perf_counter() - g.start) * 1000, 1),
+            },
+        )
+    return response
+
+
 @app.errorhandler(psycopg.OperationalError)
 @app.errorhandler(PoolTimeout)
 def db_unavailable(exc):
     # DB 연결 실패는 500이 아니라 503으로 응답해서, 알람과 로그에서 "앱 버그"와 구분되게 한다.
-    log.error("database unavailable: %s", exc)
+    # event 값으로 CloudWatch 지표 필터를 걸어 알람을 만든다 (infra/monitoring.tf).
+    log.error("database unavailable: %s", exc, extra={"event": "db_unavailable"})
     return error(503, "database unavailable")
+
+
+@app.errorhandler(Exception)
+def unhandled(exc):
+    if isinstance(exc, HTTPException):  # 404, 405 같은 정상적인 HTTP 오류는 그대로 돌려준다.
+        return exc
+    log.exception("unhandled exception", extra={"event": "unhandled_exception"})
+    return error(500, "internal server error")
 
 
 @app.get("/")
