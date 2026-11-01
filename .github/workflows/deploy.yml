@@ -20,7 +20,7 @@ concurrency:
 
 env:
   AWS_REGION: ap-northeast-2
-  # 비밀 정보가 아니다. 이 역할은 hyewon-2/cloud-portfolio main 브랜치에서만 쓸 수 있다 (bootstrap/main.tf).
+  # 비밀 정보가 아니다. 이 역할은 hyewon-2/saa-quiz-aws main 브랜치에서만 쓸 수 있다 (bootstrap/main.tf).
   AWS_ROLE_ARN: arn:aws:iam::458255180711:role/cloud-portfolio-github-actions
   ECR_REPOSITORY: cloud-portfolio
   ECS_CLUSTER: cloud-portfolio
