@@ -11,6 +11,11 @@ def test_index_returns_version(client):
     assert "version" in res.get_json()
 
 
+def test_json_declares_utf8(client):
+    # 한글 응답이 오래된 클라이언트에서 깨지지 않도록 charset을 명시해야 한다.
+    assert client.get("/").headers["Content-Type"] == "application/json; charset=utf-8"
+
+
 def test_health_does_not_touch_db(client):
     res = client.get("/health")
     assert res.status_code == 200

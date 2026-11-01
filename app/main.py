@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.json.ensure_ascii = False  # 한글 문제를 \uXXXX 대신 그대로 보여 준다.
+# charset을 명시한다. 없으면 Windows PowerShell 5.1의 Invoke-RestMethod가 ISO-8859-1로 읽어서 한글이 깨진다.
+app.json.mimetype = "application/json; charset=utf-8"
 
 # CI/CD에서 이미지 빌드 시 커밋 SHA를 넣어 준다. 배포 후 새 버전이 떴는지 확인하는 용도.
 APP_VERSION = os.environ.get("APP_VERSION", "local")
