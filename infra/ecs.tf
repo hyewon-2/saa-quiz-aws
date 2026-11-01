@@ -47,6 +47,19 @@ resource "aws_ecs_task_definition" "app" {
       protocol      = "tcp"
     }]
 
+    environment = [
+      { name = "DB_HOST", value = aws_db_instance.main.address },
+      { name = "DB_PORT", value = tostring(aws_db_instance.main.port) },
+      { name = "DB_NAME", value = var.db_name },
+      { name = "DB_USER", value = var.db_username },
+    ]
+
+    # 비밀번호는 태스크 정의에 값이 아니라 "위치"만 적는다. RDS가 만든 시크릿(JSON)의 password 키를 꺼낸다.
+    # 주의: 비밀번호가 교체(rotation)돼도 이미 떠 있는 태스크는 옛 값을 갖고 있다. 새 태스크부터 새 값을 받는다.
+    secrets = [
+      { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
+    ]
+
     logConfiguration = {
       logDriver = "awslogs"
       options = {

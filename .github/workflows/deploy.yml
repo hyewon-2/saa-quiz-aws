@@ -30,6 +30,20 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # 테스트는 가짜 DB가 아니라 진짜 PostgreSQL에 붙어서 SQL까지 검증한다. 값은 docker-compose.yml과 같다.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: quiz
+          POSTGRES_USER: quiz
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quiz -d quiz"
+          --health-interval 2s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v5
 

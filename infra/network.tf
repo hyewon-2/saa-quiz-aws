@@ -53,3 +53,32 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
+
+# ---------------------------------------------------------------------------
+# 프라이빗 서브넷: RDS 전용. 인터넷으로 나가는 경로가 아예 없다.
+# RDS는 밖으로 나갈 일이 없어서 NAT Gateway 없이도 문제없다.
+# ---------------------------------------------------------------------------
+
+resource "aws_subnet" "private" {
+  count = length(local.azs)
+
+  vpc_id            = aws_vpc.main.id
+  availability_zone = local.azs[count.index]
+  # 10.0.10.0/24, 10.0.11.0/24
+  cidr_block = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
+
+  tags = { Name = "${var.project}-private-${local.azs[count.index]}" }
+}
+
+# 라우트를 하나도 넣지 않는다. VPC 내부(local) 경로만 남는다.
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "${var.project}-private-rt" }
+}
+
+resource "aws_route_table_association" "private" {
+  count = length(aws_subnet.private)
+
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}

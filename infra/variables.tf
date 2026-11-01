@@ -48,3 +48,19 @@ variable "task_memory" {
   type        = number
   default     = 512
 }
+
+variable "db_instance_class" {
+  description = "RDS 인스턴스 사양 (가장 작은 Graviton 사양)"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_name" {
+  type    = string
+  default = "quiz"
+}
+
+variable "db_username" {
+  type    = string
+  default = "quiz"
+}

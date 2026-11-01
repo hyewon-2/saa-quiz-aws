@@ -1,0 +1,29 @@
+# 로컬 개발/테스트용. AWS에서는 RDS를 쓴다.
+#   DB만 띄우기 (pytest용):  docker compose up -d db
+#   앱까지 띄우기:           docker compose up --build   → http://localhost:8080
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: quiz
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: localdev # 로컬 전용. AWS 비밀번호는 Secrets Manager가 관리한다.
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz -d quiz"]
+      interval: 2s
+      retries: 15
+
+  app:
+    build: .
+    environment:
+      DB_HOST: db
+      DB_NAME: quiz
+      DB_USER: quiz
+      DB_PASSWORD: localdev
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
